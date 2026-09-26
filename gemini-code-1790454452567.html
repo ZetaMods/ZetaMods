@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZetaMods - Juegos Modificados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen pb-10">
+
+    <!-- Cabecera -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-50">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold text-emerald-400">⚡ ZetaMods</h1>
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleAdmin()" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-slate-300">⚙️ Admin</button>
+                <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full font-medium">Mod APKs</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 space-y-5">
+
+        <!-- PANEL DE ADMINISTRACIÓN -->
+        <div id="admin-panel" class="hidden bg-slate-800 border border-emerald-500/50 rounded-xl p-4 shadow-lg space-y-4">
+            <h3 class="font-bold text-emerald-400 text-base">🔒 Panel de Administración</h3>
+            
+            <!-- Zona de Login -->
+            <div id="login-box" class="space-y-2">
+                <p class="text-xs text-slate-400">Ingresa la contraseña para subir juegos:</p>
+                <input type="password" id="admin-pass" placeholder="Contraseña..." class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+                <button onclick="verificarPassword()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-xs py-2 rounded transition">Entrar</button>
+                <p id="login-error" class="text-red-400 text-xs hidden">Contraseña incorrecta.</p>
+            </div>
+
+            <!-- Formulario para Subir Juegos -->
+            <div id="upload-form" class="hidden space-y-3">
+                <p class="text-xs text-emerald-400 font-medium">✨ Acceso concedido. Sube tu juego:</p>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Título del juego:</label>
+                    <input type="text" id="game-title" placeholder="Ej. Minecraft" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Versión:</label>
+                    <input type="text" id="game-version" placeholder="Ej. v1.20" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Categoría:</label>
+                    <select id="game-category" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+                        <option value="Acción">Acción</option>
+                        <option value="Arcade">Arcade</option>
+                        <option value="Simulación">Simulación</option>
+                        <option value="RPG">RPG</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Características del Mod:</label>
+                    <input type="text" id="game-mod" placeholder="Ej. Menú Mod / Todo Desbloqueado" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Ícono del juego (desde tu celular):</label>
+                    <input type="file" id="game-image-file" accept="image/*" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-slate-300">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Enlace de descarga (URL externa):</label>
+                    <input type="text" id="game-url" placeholder="Ej. https://..." class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+                </div>
+                <button onclick="publicarJuego()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-xs py-2.5 rounded transition">Publicar Juego</button>
+            </div>
+        </div>
+
+        <!-- BARRA DE BÚSQUEDA -->
+        <div class="relative">
+            <input type="text" id="search-input" oninput="filtrarJuegos()" placeholder="🔍 Buscar juegos..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <!-- CATEGORÍAS (Pestañas estilo LiteAPKs) -->
+        <div class="flex space-x-2 overflow-x-auto pb-1 text-xs">
+            <button onclick="filtrarCategoria('Todos')" class="cat-btn bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition">🔥 Todos</button>
+            <button onclick="filtrarCategoria('Acción')" class="cat-btn bg-slate-800 text-slate-300 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition">⚔️ Acción</button>
+            <button onclick="filtrarCategoria('Arcade')" class="cat-btn bg-slate-800 text-slate-300 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition">🕹️ Arcade</button>
+            <button onclick="filtrarCategoria('Simulación')" class="cat-btn bg-slate-800 text-slate-300 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition">🚗 Simulación</button>
+            <button onclick="filtrarCategoria('RPG')" class="cat-btn bg-slate-800 text-slate-300 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition">🛡️ RPG</button>
+        </div>
+
+        <!-- CATÁLOGO DE JUEGOS -->
+        <div>
+            <h2 class="text-sm font-semibold mb-3 text-slate-400 uppercase tracking-wider">Juegos Recientes</h2>
+            <div id="games-container" class="space-y-3">
+                <p class="text-center text-slate-400 py-8">Cargando juegos...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const SUPABASE_URL = 'https://atrbkqiixifcdafvuvqb.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0cmJrcWlpeGlmY2RhZnZ1dnFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NDA1NjUsImV4cCI6MjEwNjAxNjU2NX0.AupsBgSiPrgFzw_ClWkUUjGkrzqUTroGuE7MQiJ-ZAI';
+
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const PASSWORD_SECRETA = "01072007";
+
+        let listaJuegosGlobal = [];
+        let categoriaActual = 'Todos';
+
+        function toggleAdmin() {
+            const panel = document.getElementById('admin-panel');
+            panel.classList.toggle('hidden');
+        }
+
+        function verificarPassword() {
+            const pass = document.getElementById('admin-pass').value;
+            const error = document.getElementById('login-error');
+            if (pass === PASSWORD_SECRETA) {
+                document.getElementById('login-box').classList.add('hidden');
+                document.getElementById('upload-form').classList.remove('hidden');
+                error.classList.add('hidden');
+            } else {
+                error.classList.remove('hidden');
+            }
+        }
+
+        async function loadGames() {
+            const container = document.getElementById('games-container');
+            
+            const { data: games, error } = await _supabase
+                .from('games')
+                .select('*')
+                .order('id', { ascending: false });
+
+            if (error) {
+                container.innerHTML = `<p class="text-red-400 text-center text-sm">Error al cargar: ${error.message}</p>`;
+                return;
+            }
+
+            listaJuegosGlobal = games || [];
+            mostrarJuegos(listaJuegosGlobal);
+        }
+
+        function mostrarJuegos(games) {
+            const container = document.getElementById('games-container');
+
+            if (!games || games.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-center text-sm py-8">No hay juegos encontrados.</p>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            games.forEach(game => {
+                const title = game.title || 'Juego sin título';
+                const version = game.version || '1.0';
+                const mod = game.mod_features || 'Mod Desbloqueado';
+                const category = game.category || 'Otros';
+                const url = game.download_url || '#';
+                const icon = game.icon_url ? `<img src="${game.icon_url}" class="w-14 h-14 rounded-lg object-cover">` : `<div class="w-14 h-14 bg-slate-700 rounded-lg flex items-center justify-center text-xl font-bold text-emerald-400">${title.charAt(0)}</div>`;
+
+                container.innerHTML += `
+                    <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 flex items-center justify-between shadow-md">
+                        <div class="flex items-center space-x-3">
+                            ${icon}
+                            <div>
+                                <h3 class="font-bold text-base text-white">${title}</h3>
+                                <p class="text-xs text-slate-400">Versión ${version} • <span class="text-slate-500">${category}</span></p>
+                                <p class="text-xs text-emerald-400 mt-1 font-medium">✨ ${mod}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end space-y-2">
+                            <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                                Aprobado
+                            </span>
+                            <a href="${url}" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                                Descargar
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filtrarCategoria(cat) {
+            categoriaActual = cat;
+            
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                if(btn.textContent.includes(cat)) {
+                    btn.className = "cat-btn bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition";
+                } else {
+                    btn.className = "cat-btn bg-slate-800 text-slate-300 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition";
+                }
+            });
+
+            aplicarFiltros();
+        }
+
+        function filtrarJuegos() {
+            aplicarFiltros();
+        }
+
+        function aplicarFiltros() {
+            const textoBusqueda = document.getElementById('search-input').value.toLowerCase();
+            
+            const filtrados = listaJuegosGlobal.filter(game => {
+                const coincideTexto = (game.title && game.title.toLowerCase().includes(textoBusqueda)) || 
+                                     (game.mod_features && game.mod_features.toLowerCase().includes(textoBusqueda));
+                const coincideCategoria = categoriaActual === 'Todos' || game.category === categoriaActual;
+
+                return coincideTexto && coincideCategoria;
+            });
+
+            mostrarJuegos(filtrados);
+        }
+
+        async function publicarJuego() {
+            const title = document.getElementById('game-title').value;
+            const version = document.getElementById('game-version').value;
+            const category = document.getElementById('game-category').value;
+            const mod_features = document.getElementById('game-mod').value;
+            const imageInput = document.getElementById('game-image-file');
+            const download_url = document.getElementById('game-url').value;
+
+            if (!title) {
+                alert("Por lo menos escribe el título del juego.");
+                return;
+            }
+
+            let icon_url = "";
+
+            if (imageInput.files.length > 0) {
+                const file = imageInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}.${fileExt}`;
+
+                // Corregido al nombre de tu bucket: 'game-images'
+                const { error: uploadError } = await _supabase.storage
+                    .from('game-images')
+                    .upload(fileName, file);
+
+                if (uploadError) {
+                    alert("Error al subir la imagen: " + uploadError.message);
+                    return;
+                }
+
+                const { data } = _supabase.storage
+                    .from('game-images')
+                    .getPublicUrl(fileName);
+
+                icon_url = data.publicUrl;
+            }
+
+            const { error } = await _supabase
+                .from('games')
+                .insert([{ title, version, category, mod_features, icon_url, download_url }]);
+
+            if (error) {
+                alert("Error al guardar en la base de datos: " + error.message);
+            } else {
+                alert("¡Juego publicado con éxito!");
+                document.getElementById('game-title').value = '';
+                document.getElementById('game-version').value = '';
+                document.getElementById('game-mod').value = '';
+                document.getElementById('game-url').value = '';
+                imageInput.value = '';
+                toggleAdmin();
+                loadGames();
+            }
+        }
+
+        loadGames();
+    </script>
+</body>
+</html>
